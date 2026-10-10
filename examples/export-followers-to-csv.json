@@ -1,0 +1,126 @@
+{
+  "name": "TwittrAPI: export followers to CSV",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Run manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "parameters": {
+        "resource": "user",
+        "operation": "getFollowers",
+        "userBy": "username",
+        "username": "n8n_io",
+        "returnAll": true,
+        "maxPages": 20,
+        "options": {
+          "count": 100
+        }
+      },
+      "name": "Get followers",
+      "type": "n8n-nodes-twittrapi.twittrApi",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "credentials": {
+        "twittrApiApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "TwittrAPI account"
+        }
+      },
+      "id": "a0000000-0000-4000-8000-000000000002"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Turn raw follower pages into one item per user.\nconst seen = new Set();\nconst out = [];\n\nconst walk = (v) => {\n  if (!v || typeof v !== 'object') return;\n  if (Array.isArray(v)) return v.forEach(walk);\n  const u = v.user_results && v.user_results.result;\n  if (u && u.rest_id && !seen.has(u.rest_id)) {\n    seen.add(u.rest_id);\n    const l = u.legacy || {};\n    const c = u.core || {};\n    out.push({\n      id: u.rest_id,\n      username: c.screen_name || l.screen_name || '',\n      name: c.name || l.name || '',\n      followers: l.followers_count,\n      following: l.friends_count,\n      tweets: l.statuses_count,\n      verified: !!u.is_blue_verified,\n      bio: l.description || '',\n      createdAt: c.created_at || l.created_at || '',\n    });\n  }\n  Object.values(v).forEach(walk);\n};\n\nfor (const item of $input.all()) walk(item.json);\nreturn out.map((json) => ({ json }));\n"
+      },
+      "name": "One item per user",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "a0000000-0000-4000-8000-000000000003"
+    },
+    {
+      "parameters": {
+        "operation": "csv",
+        "options": {
+          "fileName": "followers.csv"
+        }
+      },
+      "name": "Convert to CSV",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        0
+      ],
+      "id": "a0000000-0000-4000-8000-000000000004"
+    },
+    {
+      "parameters": {
+        "content": "## Export followers to CSV\nFetches up to 20 pages of followers (Return All + Max Pages) for a username, flattens them to one row per user and produces `followers.csv` as binary output. Download it from the last node, or add a Google Drive / email node.\n\nEach page is one API call, so 20 pages = 20 calls. Raise Max Pages for large accounts.",
+        "height": 220,
+        "width": 420
+      },
+      "name": "Read me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -280
+      ],
+      "id": "a0000000-0000-4000-8000-000000000009"
+    }
+  ],
+  "connections": {
+    "Run manually": {
+      "main": [
+        [
+          {
+            "node": "Get followers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get followers": {
+      "main": [
+        [
+          {
+            "node": "One item per user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per user": {
+      "main": [
+        [
+          {
+            "node": "Convert to CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

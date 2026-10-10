@@ -1,0 +1,153 @@
+{
+  "name": "TwittrAPI: new mentions to Google Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "parameters": {
+        "resource": "search",
+        "operation": "tweets",
+        "query": "@yourbrand -from:yourbrand",
+        "category": "Latest",
+        "options": {
+          "count": 50
+        }
+      },
+      "name": "Search mentions",
+      "type": "n8n-nodes-twittrapi.twittrApi",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "credentials": {
+        "twittrApiApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "TwittrAPI account"
+        }
+      },
+      "id": "a0000000-0000-4000-8000-000000000002"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull tweets out of the raw X GraphQL response(s).\n// Only tweets newer than the last run are passed on (stored in workflow static data,\n// which persists for active workflows; manual test runs always start fresh).\nconst state = $getWorkflowStaticData('global');\nconst lastId = state.lastId ? BigInt(state.lastId) : 0n;\nconst seen = new Set();\nconst out = [];\n\nconst walk = (v) => {\n  if (!v || typeof v !== 'object') return;\n  if (Array.isArray(v)) return v.forEach(walk);\n  const r = v.tweet_results && v.tweet_results.result;\n  if (r) {\n    const t = r.tweet || r; // \"TweetWithVisibilityResults\" wraps the tweet\n    if (t.legacy && t.rest_id && !seen.has(t.rest_id)) {\n      seen.add(t.rest_id);\n      const u = (t.core && t.core.user_results && t.core.user_results.result) || {};\n      const username = (u.core && u.core.screen_name) || (u.legacy && u.legacy.screen_name) || '';\n      out.push({\n        id: t.rest_id,\n        createdAt: t.legacy.created_at,\n        username,\n        text: t.legacy.full_text,\n        likes: t.legacy.favorite_count,\n        retweets: t.legacy.retweet_count,\n        replies: t.legacy.reply_count,\n        url: `https://x.com/${username || 'i'}/status/${t.rest_id}`,\n      });\n    }\n  }\n  Object.values(v).forEach(walk);\n};\n\nfor (const item of $input.all()) walk(item.json);\n\nconst fresh = out.filter((t) => BigInt(t.id) > lastId);\nif (out.length) state.lastId = out.reduce((m, t) => (BigInt(t.id) > BigInt(m) ? t.id : m), state.lastId || '0');\nreturn fresh.map((json) => ({ json }));\n"
+      },
+      "name": "Keep new tweets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "a0000000-0000-4000-8000-000000000003"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/REPLACE_WITH_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Mentions"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "name": "Append to sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "id": "a0000000-0000-4000-8000-000000000004"
+    },
+    {
+      "parameters": {
+        "content": "## New mentions to Google Sheets\nEvery 15 minutes: search the latest tweets that mention `@yourbrand`, keep only tweets not seen before and append them to a sheet named **Mentions** (columns: id, createdAt, username, text, likes, retweets, replies, url).\n\nReplace `@yourbrand`, the sheet URL and both credentials, then activate the workflow. One search = one API call per run.",
+        "height": 220,
+        "width": 420
+      },
+      "name": "Read me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -280
+      ],
+      "id": "a0000000-0000-4000-8000-000000000009"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Search mentions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search mentions": {
+      "main": [
+        [
+          {
+            "node": "Keep new tweets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep new tweets": {
+      "main": [
+        [
+          {
+            "node": "Append to sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

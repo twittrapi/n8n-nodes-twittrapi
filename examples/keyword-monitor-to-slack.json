@@ -1,0 +1,143 @@
+{
+  "name": "TwittrAPI: keyword monitor to Slack",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "parameters": {
+        "resource": "search",
+        "operation": "tweets",
+        "query": "\"n8n\" lang:en -filter:retweets min_faves:5",
+        "category": "Latest",
+        "options": {
+          "count": 40
+        }
+      },
+      "name": "Search keyword",
+      "type": "n8n-nodes-twittrapi.twittrApi",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "credentials": {
+        "twittrApiApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "TwittrAPI account"
+        }
+      },
+      "id": "a0000000-0000-4000-8000-000000000002"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull tweets out of the raw X GraphQL response(s).\n// Only tweets newer than the last run are passed on (stored in workflow static data,\n// which persists for active workflows; manual test runs always start fresh).\nconst state = $getWorkflowStaticData('global');\nconst lastId = state.lastId ? BigInt(state.lastId) : 0n;\nconst seen = new Set();\nconst out = [];\n\nconst walk = (v) => {\n  if (!v || typeof v !== 'object') return;\n  if (Array.isArray(v)) return v.forEach(walk);\n  const r = v.tweet_results && v.tweet_results.result;\n  if (r) {\n    const t = r.tweet || r; // \"TweetWithVisibilityResults\" wraps the tweet\n    if (t.legacy && t.rest_id && !seen.has(t.rest_id)) {\n      seen.add(t.rest_id);\n      const u = (t.core && t.core.user_results && t.core.user_results.result) || {};\n      const username = (u.core && u.core.screen_name) || (u.legacy && u.legacy.screen_name) || '';\n      out.push({\n        id: t.rest_id,\n        createdAt: t.legacy.created_at,\n        username,\n        text: t.legacy.full_text,\n        likes: t.legacy.favorite_count,\n        retweets: t.legacy.retweet_count,\n        replies: t.legacy.reply_count,\n        url: `https://x.com/${username || 'i'}/status/${t.rest_id}`,\n      });\n    }\n  }\n  Object.values(v).forEach(walk);\n};\n\nfor (const item of $input.all()) walk(item.json);\n\nconst fresh = out.filter((t) => BigInt(t.id) > lastId);\nif (out.length) state.lastId = out.reduce((m, t) => (BigInt(t.id) > BigInt(m) ? t.id : m), state.lastId || '0');\nreturn fresh.map((json) => ({ json }));\n"
+      },
+      "name": "Keep new tweets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "a0000000-0000-4000-8000-000000000003"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "#social-monitor"
+        },
+        "text": "=New tweet by @{{ $json.username }} ({{ $json.likes }} likes):\n{{ $json.text }}\n{{ $json.url }}",
+        "otherOptions": {}
+      },
+      "name": "Post to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Slack account"
+        }
+      },
+      "id": "a0000000-0000-4000-8000-000000000004"
+    },
+    {
+      "parameters": {
+        "content": "## Keyword monitor to Slack\nEvery 10 minutes: search the latest tweets for a keyword with X search operators, keep only new ones and post each to a Slack channel.\n\nEdit the query (any X search syntax works), the channel and both credentials, then activate the workflow.",
+        "height": 220,
+        "width": 420
+      },
+      "name": "Read me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -280
+      ],
+      "id": "a0000000-0000-4000-8000-000000000009"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Search keyword",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search keyword": {
+      "main": [
+        [
+          {
+            "node": "Keep new tweets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep new tweets": {
+      "main": [
+        [
+          {
+            "node": "Post to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
