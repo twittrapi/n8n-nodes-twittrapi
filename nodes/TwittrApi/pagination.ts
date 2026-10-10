@@ -28,7 +28,9 @@ function walk(root: unknown, visit: (obj: Record<string, unknown>) => void, maxD
  *
  * Handles timeline cursors (`{ cursorType: "Bottom", value }`, also inside
  * TimelineReplaceEntry instructions), entries named `cursor-bottom-*`, and
- * slice-style responses (`slice_info.next_cursor`).
+ * slice-style responses (`slice_info.next_cursor`, e.g. community search,
+ * community members, job search). A next_cursor of "0" means "no more pages".
+ * Top cursors are never returned.
  */
 export function extractBottomCursor(data: unknown): string | undefined {
 	let found: string | undefined;
@@ -52,7 +54,8 @@ export function extractBottomCursor(data: unknown): string | undefined {
 			slice &&
 			typeof slice === 'object' &&
 			typeof slice.next_cursor === 'string' &&
-			slice.next_cursor
+			slice.next_cursor &&
+			slice.next_cursor !== '0'
 		) {
 			found = slice.next_cursor;
 		}
@@ -69,7 +72,8 @@ export function countContentEntries(data: unknown): number {
 	let count = 0;
 	walk(data, (obj) => {
 		if (typeof obj.entryId === 'string' && !obj.entryId.startsWith('cursor-')) count++;
-		if (obj.slice_info && Array.isArray(obj.items)) count += obj.items.length;
+		if (obj.slice_info && Array.isArray(obj.items_results)) count += obj.items_results.length;
+		else if (obj.slice_info && Array.isArray(obj.items)) count += obj.items.length;
 	});
 	return count;
 }

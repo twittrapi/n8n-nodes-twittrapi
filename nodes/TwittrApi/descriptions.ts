@@ -9,6 +9,13 @@ import { ENDPOINTS, RESOURCES, type Endpoint, type EndpointParam } from './endpo
 import { throwOnApiError } from './errors';
 import { DEFAULT_MAX_PAGES, paginateByCursor } from './pagination';
 
+/**
+ * Count is an integer 1..100 (the API maximum). Expressions can bypass the UI
+ * min/max, so clamp the value that is actually sent.
+ */
+export const COUNT_VALUE_EXPRESSION =
+	'={{ Math.min(100, Math.max(1, Math.round(Number($value)) || 20)) }}';
+
 const show = (ep: Endpoint, extra: Record<string, unknown[]> = {}) => ({
 	show: { resource: [ep.resource], operation: [ep.operation], ...extra },
 });
@@ -184,7 +191,13 @@ function optionsCollection(ep: Endpoint): INodeProperties | undefined {
 				typeOptions: { minValue: 1, maxValue: 100 },
 				description:
 					'Results requested per page. X treats this as a hint, so pages may contain fewer or more entries.',
-				routing: { send: { type: 'query', property: 'count' } },
+				routing: {
+					send: {
+						type: 'query',
+						property: 'count',
+						value: COUNT_VALUE_EXPRESSION,
+					},
+				},
 			},
 			{
 				displayName: 'Cursor',
