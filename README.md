@@ -1,6 +1,10 @@
-# n8n-nodes-twittrapi
+# n8n-nodes-twittrapi – Twitter/X node for n8n
+
+[![npm](https://img.shields.io/npm/v/n8n-nodes-twittrapi.svg)](https://www.npmjs.com/package/n8n-nodes-twittrapi)
 
 An [n8n](https://n8n.io/) community node for [TwittrAPI](https://www.twittrapi.com). It reads public X (Twitter) data: profiles, timelines, followers, tweets, search, lists, communities and trends.
+
+> **Get an API key:** [twittrapi.com/start](https://twittrapi.com/start?utm_source=github&utm_medium=readme&utm_campaign=n8n-nodes-twittrapi) · [Pricing](https://twittrapi.com/pricing?utm_source=github&utm_medium=readme&utm_campaign=n8n-nodes-twittrapi) · [Docs](https://twittrapi.com/docs?utm_source=github&utm_medium=readme&utm_campaign=n8n-nodes-twittrapi) · also available on [RapidAPI](https://rapidapi.com/viperscores-viperscores-default/api/twitter-aio)
 
 Not affiliated with X Corp.
 
@@ -135,6 +139,10 @@ All endpoints live in [`nodes/TwittrApi/endpoints.ts`](nodes/TwittrApi/endpoints
 
 - [TwittrAPI documentation](https://www.twittrapi.com/docs)
 - [n8n community nodes documentation](https://docs.n8n.io/integrations/#community-nodes)
+
+## Support
+
+Questions, bugs or a higher rate limit: email support@twittrapi.com or open an issue in this repository. Service status: [status.twittrapi.com](https://status.twittrapi.com). News and changes: the TwittrAPI Telegram channel (link on the website).
 
 ## License
 
