@@ -79,10 +79,33 @@ export function countContentEntries(data: unknown): number {
 }
 
 /**
+ * Whether `data` is a page in the simple format (format=simple):
+ * `{ data: [...], nextCursor, previousCursor, hasNextPage }`.
+ */
+export function isSimplePage(data: unknown): data is {
+	data: unknown[];
+	nextCursor: string | null;
+	hasNextPage: boolean;
+} {
+	if (data === null || typeof data !== 'object' || Array.isArray(data)) return false;
+	const obj = data as IDataObject;
+	return typeof obj.hasNextPage === 'boolean' && Array.isArray(obj.data);
+}
+
+/**
  * Decide whether to fetch another page after receiving `data`.
  * Returns the cursor to use, or undefined to stop.
+ *
+ * Simple-format pages carry the answer themselves: nextCursor is null and
+ * hasNextPage false on the last page.
  */
 export function nextCursor(data: unknown, previousCursors: Set<string>): string | undefined {
+	if (isSimplePage(data)) {
+		const cursor = data.nextCursor;
+		if (!data.hasNextPage || data.data.length === 0) return undefined;
+		if (typeof cursor !== 'string' || !cursor || previousCursors.has(cursor)) return undefined;
+		return cursor;
+	}
 	if (countContentEntries(data) === 0) return undefined;
 	const cursor = extractBottomCursor(data);
 	if (!cursor || previousCursors.has(cursor)) return undefined;

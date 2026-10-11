@@ -16,6 +16,47 @@ import { DEFAULT_MAX_PAGES, paginateByCursor } from './pagination';
 export const COUNT_VALUE_EXPRESSION =
 	'={{ Math.min(100, Math.max(1, Math.round(Number($value)) || 20)) }}';
 
+/**
+ * Sends `format=simple` only when the Simple output format is chosen. Raw sends
+ * nothing, so requests are unchanged from earlier versions.
+ */
+export const FORMAT_VALUE_EXPRESSION = "={{ $value === 'simple' ? 'simple' : undefined }}";
+
+/**
+ * Output Format, shown for every operation. Raw (the default) is X's JSON as is;
+ * Simple asks the API for its compact, fixed-schema format.
+ */
+export function outputFormatProperty(): INodeProperties {
+	return {
+		displayName: 'Output Format',
+		name: 'outputFormat',
+		type: 'options',
+		options: [
+			{
+				name: 'Raw',
+				value: 'raw',
+				description: "X's full JSON response, unchanged",
+			},
+			{
+				name: 'Simple',
+				value: 'simple',
+				description:
+					'Compact camelCase tweets, users, lists and communities with a fixed schema in a {data, nextCursor, hasNextPage} envelope. Same price.',
+			},
+		],
+		default: 'raw',
+		description:
+			'Format of the API response. Simple sends format=simple, see https://twittrapi.com/docs/simple-format.',
+		routing: {
+			send: {
+				type: 'query',
+				property: 'format',
+				value: FORMAT_VALUE_EXPRESSION,
+			},
+		},
+	};
+}
+
 const show = (ep: Endpoint, extra: Record<string, unknown[]> = {}) => ({
 	show: { resource: [ep.resource], operation: [ep.operation], ...extra },
 });
@@ -153,7 +194,7 @@ function paginationProperties(ep: Endpoint): INodeProperties[] {
 			type: 'boolean',
 			default: false,
 			description: 'Whether to return all results or only up to a given limit',
-			hint: 'Follows the bottom cursor page by page until there are no more results or Max Pages is reached. Each page is one billed API call and one output item.',
+			hint: 'Follows the bottom cursor (nextCursor in the Simple format) page by page until there are no more results or Max Pages is reached. Each page is one billed API call and one output item.',
 			displayOptions: show(ep),
 			routing: {
 				send: {
@@ -205,7 +246,7 @@ function optionsCollection(ep: Endpoint): INodeProperties | undefined {
 				type: 'string',
 				default: '',
 				description:
-					'Cursor from a previous response to continue from (the "value" of the entry with cursorType "Bottom"). Leave empty for the first page.',
+					'Cursor from a previous response to continue from (the "value" of the entry with cursorType "Bottom", or nextCursor in the Simple format). Leave empty for the first page.',
 				routing: {
 					send: {
 						type: 'query',
@@ -290,5 +331,6 @@ export function buildProperties(): INodeProperties[] {
 		if (collection) properties.push(collection);
 	}
 
+	properties.push(outputFormatProperty());
 	return properties;
 }

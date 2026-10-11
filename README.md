@@ -88,13 +88,15 @@ Notes:
 
 ## Output and pagination
 
-The node returns the raw JSON from X's GraphQL API, unchanged, one item per API response. Tweets sit under paths such as `...instructions[].entries[].content.itemContent.tweet_results.result`, users under `...user_results.result`. A **Code** node is the easiest way to flatten this; the example workflows include ready-made snippets for tweets and users.
+By default (**Output Format: Raw**) the node returns the raw JSON from X's GraphQL API, unchanged, one item per API response. Tweets sit under paths such as `...instructions[].entries[].content.itemContent.tweet_results.result`, users under `...user_results.result`. A **Code** node is the easiest way to flatten this; the example workflows include ready-made snippets for tweets and users.
+
+Set **Output Format** to **Simple** to get TwittrAPI's [simple format](https://twittrapi.com/docs/simple-format) instead (the node sends `format=simple`, same price). Each item is then `{ "data": [...], "nextCursor", "previousCursor", "hasNextPage" }` for lists and timelines, or `{ "data": {...} }` for a single profile, tweet, list or community, with flat camelCase fields such as `id`, `text`, `author.username` and `counts.likes`. Use a **Split Out** node on `data` to get one item per tweet or user.
 
 Operations that return a timeline (tweets, followers, likers, search and so on) have:
 
 - **Options > Count**: results per page (default 20). X treats it as a hint.
-- **Options > Cursor**: start from a cursor you saved earlier. The next-page cursor is the `value` of the entry whose `cursorType` is `Bottom`.
-- **Return All**: keep fetching pages using the bottom cursor. It stops when a page has no entries, the cursor stops changing, or **Max Pages** (default 10) is reached. Every page is one billed API call and one output item.
+- **Options > Cursor**: start from a cursor you saved earlier. The next-page cursor is the `value` of the entry whose `cursorType` is `Bottom` (Raw) or `nextCursor` (Simple).
+- **Return All**: keep fetching pages using the bottom cursor (`nextCursor` in Simple). It stops when a page has no entries, `hasNextPage` is false (Simple), the cursor stops changing, or **Max Pages** (default 10) is reached. Every page is one billed API call and one output item.
 
 ## Errors
 
