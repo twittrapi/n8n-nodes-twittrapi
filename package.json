@@ -1,15 +1,20 @@
 {
 	"name": "n8n-nodes-twittrapi",
 	"version": "0.2.0",
-	"description": "n8n community node for TwittrAPI: read public X (Twitter) data such as profiles, tweets, followers, search, lists, communities and trends.",
+	"description": "n8n community node for TwittrAPI: read public Twitter/X tweets, profiles, followers and search results. Pay as you go from $0.065 per 1,000 calls.",
 	"license": "MIT",
 	"homepage": "https://www.twittrapi.com",
 	"keywords": [
 		"n8n-community-node-package",
-		"n8n",
+		"twitter api",
+		"x api",
+		"twitter scraper",
+		"tweets",
+		"twitter search",
+		"twitter followers",
+		"social media data",
 		"twittrapi",
-		"twitter",
-		"x"
+		"n8n"
 	],
 	"author": {
 		"name": "TwittrAPI",

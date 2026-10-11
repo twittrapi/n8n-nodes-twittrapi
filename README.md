@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/n8n-nodes-twittrapi.svg)](https://www.npmjs.com/package/n8n-nodes-twittrapi)
 
-An [n8n](https://n8n.io/) community node for [TwittrAPI](https://www.twittrapi.com). It reads public X (Twitter) data: profiles, timelines, followers, tweets, search, lists, communities and trends.
+An [n8n](https://n8n.io/) community node for [TwittrAPI](https://www.twittrapi.com), a REST API for public Twitter/X data: tweets, profiles, followers, search, lists and communities. Pay as you go from $0.065 per 1,000 calls, no X developer account.
 
 > **Get an API key:** [twittrapi.com/start](https://twittrapi.com/start?utm_source=github&utm_medium=readme&utm_campaign=n8n-nodes-twittrapi) · [Pricing](https://twittrapi.com/pricing?utm_source=github&utm_medium=readme&utm_campaign=n8n-nodes-twittrapi) · [Docs](https://twittrapi.com/docs?utm_source=github&utm_medium=readme&utm_campaign=n8n-nodes-twittrapi) · also available on [RapidAPI](https://rapidapi.com/viperscores-viperscores-default/api/twitter-aio)
 
