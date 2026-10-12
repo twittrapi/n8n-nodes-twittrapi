@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.2.1
+## 0.2.2
 
-- Published from GitHub Actions with an npm provenance statement (required for n8n verified community nodes). No functional changes.
+- Published from GitHub Actions with an npm provenance statement (required for n8n verified community nodes). No functional changes. (0.2.1 was not published.)
 
 ## 0.2.0
 
