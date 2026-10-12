@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.4
+
+- Package contact email updated. No functional changes.
+
 ## 0.2.3
 
 - Published from GitHub Actions with an npm provenance statement (required for n8n verified community nodes). No functional changes. (0.2.1 and 0.2.2 were not published.)
