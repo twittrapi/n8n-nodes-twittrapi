@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.5
+
+- New TwittrAPI logo for the node and the credential. No functional changes.
+
 ## 0.2.4
 
 - Package contact email updated. No functional changes.
