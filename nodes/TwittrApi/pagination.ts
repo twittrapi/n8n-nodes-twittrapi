@@ -116,6 +116,7 @@ export function nextCursor(data: unknown, previousCursors: Set<string>): string 
  * Declarative pagination handler used when "Return All" is on.
  * Requests pages until there is no new bottom cursor, a page is empty,
  * or "Max Pages" is reached. Each page is returned as one item.
+ * The cursor goes in the query, or in the JSON body for POST requests.
  */
 export async function paginateByCursor(
 	this: IExecutePaginationFunctions,
@@ -125,20 +126,21 @@ export async function paginateByCursor(
 	const maxPages =
 		Number.isFinite(maxPagesRaw) && maxPagesRaw > 0 ? Math.floor(maxPagesRaw) : DEFAULT_MAX_PAGES;
 
+	const field = requestOptions.options.method === 'POST' ? 'body' : 'qs';
 	const results: INodeExecutionData[] = [];
 	const seen = new Set<string>();
-	const startCursor = (requestOptions.options.qs as IDataObject | undefined)?.cursor;
+	const startCursor = (requestOptions.options[field] as IDataObject | undefined)?.cursor;
 	if (typeof startCursor === 'string' && startCursor) seen.add(startCursor);
 
 	let cursor: string | undefined = typeof startCursor === 'string' ? startCursor : undefined;
 	for (let page = 0; page < maxPages; page++) {
-		const qs: IDataObject = { ...((requestOptions.options.qs as IDataObject) ?? {}) };
-		if (cursor) qs.cursor = cursor;
-		else delete qs.cursor;
+		const params: IDataObject = { ...((requestOptions.options[field] as IDataObject) ?? {}) };
+		if (cursor) params.cursor = cursor;
+		else delete params.cursor;
 
 		const pageItems = await this.makeRoutingRequest({
 			...requestOptions,
-			options: { ...requestOptions.options, qs },
+			options: { ...requestOptions.options, [field]: params },
 		});
 		results.push(...pageItems);
 

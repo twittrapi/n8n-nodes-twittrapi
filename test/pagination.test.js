@@ -84,6 +84,29 @@ test('paginateByCursor starts from a given cursor and stops on a repeat', async 
 	assert.deepEqual(ctx.calls, [{ cursor: 'START' }, { cursor: 'B1' }]);
 });
 
+test('paginateByCursor sends the cursor in the body for POST requests', async () => {
+	const calls = [];
+	const ctx = {
+		getNodeParameter: (name, fallback) => (name === 'maxPages' ? 10 : fallback),
+		makeRoutingRequest: async (opts) => {
+			calls.push({ qs: { ...opts.options.qs }, body: { ...opts.options.body } });
+			const pages = [followersPage(['1'], 'B1'), emptyPage('B2')];
+			return [{ json: pages[calls.length - 1] }];
+		},
+	};
+	const body = { cookie: 'auth_token=a; ct0=b', proxy: 'http://u:p@h:1', count: 20 };
+	const items = await paginateByCursor.call(ctx, {
+		options: { url: '/x', method: 'POST', qs: { format: 'simple' }, body },
+		preSend: [],
+		postReceive: [],
+	});
+	assert.equal(items.length, 2);
+	assert.deepEqual(calls, [
+		{ qs: { format: 'simple' }, body },
+		{ qs: { format: 'simple' }, body: { ...body, cursor: 'B1' } },
+	]);
+});
+
 test('apiErrorMessage reads {"error": "..."} and plain text bodies', () => {
 	const { apiErrorMessage } = require('../dist/nodes/TwittrApi/errors');
 	assert.equal(apiErrorMessage({ error: 'Insufficient balance' }), 'Insufficient balance');

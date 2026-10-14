@@ -82,8 +82,8 @@ export function buildUrlExpression(ep: Endpoint): string {
 	return url.includes('{{') ? `=${url}` : url;
 }
 
-/** Expression for a query value, applying the param's cleanup rules. */
-function queryValueExpression(param: EndpointParam): string | undefined {
+/** Expression for a query or body value, applying the param's cleanup rules. */
+function sendValueExpression(param: EndpointParam): string | undefined {
 	if (param.csv) {
 		return `={{ String($value).split(',').map((s) => s.trim()).filter((s) => s).join(',') }}`;
 	}
@@ -134,15 +134,16 @@ function paramToProperty(
 	if (param.minValue !== undefined || param.maxValue !== undefined) {
 		prop.typeOptions = { minValue: param.minValue, maxValue: param.maxValue };
 	}
+	if (param.password) prop.typeOptions = { ...prop.typeOptions, password: true };
 	if (!inCollection) {
 		prop.displayOptions = show(ep);
 		if (param.required && param.type === 'string') prop.required = true;
 	}
-	if (param.in === 'query') {
-		const value = queryValueExpression(param);
+	if (param.in === 'query' || param.in === 'body') {
+		const value = sendValueExpression(param);
 		prop.routing = {
 			send: {
-				type: 'query',
+				type: param.in,
 				property: param.apiName ?? param.name,
 				...(value ? { value } : {}),
 				...(param.maxItems !== undefined ? { preSend: [maxItemsCheck(param)] } : {}),
@@ -217,6 +218,9 @@ function paginationProperties(ep: Endpoint): INodeProperties[] {
 	];
 }
 
+/** Where Count and Cursor are sent: the JSON body for POST endpoints, else the query. */
+const pageParamsIn = (ep: Endpoint) => (ep.method === 'POST' ? 'body' : 'query');
+
 function optionsCollection(ep: Endpoint): INodeProperties | undefined {
 	const options: INodeProperties[] = ep.params
 		.filter((p) => !p.required)
@@ -234,7 +238,7 @@ function optionsCollection(ep: Endpoint): INodeProperties | undefined {
 					'Results requested per page. X treats this as a hint, so pages may contain fewer or more entries.',
 				routing: {
 					send: {
-						type: 'query',
+						type: pageParamsIn(ep),
 						property: 'count',
 						value: COUNT_VALUE_EXPRESSION,
 					},
@@ -249,7 +253,7 @@ function optionsCollection(ep: Endpoint): INodeProperties | undefined {
 					'Cursor from a previous response to continue from (the "value" of the entry with cursorType "Bottom", or nextCursor in the Simple format). Leave empty for the first page.',
 				routing: {
 					send: {
-						type: 'query',
+						type: pageParamsIn(ep),
 						property: 'cursor',
 						value: '={{ String($value).trim() || undefined }}',
 					},

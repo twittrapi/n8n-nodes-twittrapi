@@ -15,7 +15,7 @@ export interface EndpointParam {
 	name: string;
 	/** Name the API expects, if different from `name`. */
 	apiName?: string;
-	in: 'path' | 'query';
+	in: 'path' | 'query' | 'body';
 	displayName: string;
 	type: ParamType;
 	/** Required params are top-level fields. Optional ones go into the "Options" collection. */
@@ -24,6 +24,8 @@ export interface EndpointParam {
 	description: string;
 	placeholder?: string;
 	options?: Array<{ name: string; value: string; description?: string }>;
+	/** Hide the value like a password (cookies). */
+	password?: boolean;
 	/** Strip a leading "@" (usernames). */
 	stripAt?: boolean;
 	/** Remove spaces and empty entries from a comma-separated list. */
@@ -42,7 +44,8 @@ export interface Endpoint {
 	/** Action label shown in the node picker (sentence case). */
 	action: string;
 	description: string;
-	method: 'GET';
+	/** POST sends body params, Count and Cursor in a JSON body. */
+	method: 'GET' | 'POST';
 	path: string;
 	params: EndpointParam[];
 	/**
@@ -128,6 +131,30 @@ const communityId: EndpointParam = {
 	default: '',
 	placeholder: '1493446837214187523',
 	description: 'Numeric community ID (the number in the community URL)',
+};
+
+const cookie: EndpointParam = {
+	displayName: 'Cookie',
+	name: 'cookie',
+	in: 'body',
+	type: 'string',
+	required: true,
+	default: '',
+	placeholder: 'auth_token=...; ct0=...',
+	description:
+		'Cookie header of the X account that posted the tweet. Must contain auth_token and ct0.',
+	password: true,
+};
+
+const proxy: EndpointParam = {
+	displayName: 'Proxy',
+	name: 'proxy',
+	in: 'body',
+	type: 'string',
+	required: true,
+	default: '',
+	placeholder: 'http://user:pass@host:port',
+	description: 'Proxy the request to X goes out through',
 };
 
 const rankingMode = (values: string[]): EndpointParam => {
@@ -311,10 +338,11 @@ export const ENDPOINTS: Endpoint[] = [
 		operation: 'getLikers',
 		name: 'Get Likers',
 		action: 'Get users who liked a tweet',
-		description: 'Get users who liked a tweet',
-		method: 'GET',
+		description:
+			'Get users who liked one of your own tweets. X shows likers only to the author, so use the cookie of the account that posted it.',
+		method: 'POST',
 		path: '/tweet/{tweetId}/favorites',
-		params: [tweetId],
+		params: [tweetId, cookie, proxy],
 		paginated: true,
 	},
 	{

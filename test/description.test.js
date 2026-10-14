@@ -23,7 +23,7 @@ test('every endpoint appears as an operation of its resource', () => {
 		assert.ok(op, `operation list for ${ep.resource}`);
 		const option = op.options.find((o) => o.value === ep.operation);
 		assert.ok(option, `${ep.resource}.${ep.operation}`);
-		assert.equal(option.routing.request.method, 'GET');
+		assert.equal(option.routing.request.method, ep.method);
 	}
 	for (const r of RESOURCES) {
 		assert.ok(
@@ -103,6 +103,43 @@ test('paginated operations expose returnAll, maxPages, count and cursor', () => 
 		const options = forOp.find((p) => p.name === 'options');
 		const names = options.options.map((o) => o.name);
 		assert.ok(names.includes('count') && names.includes('cursor'), ep.path);
+	}
+});
+
+test('getLikers is a POST with cookie, proxy, count and cursor in the body', () => {
+	const ep = ENDPOINTS.find((e) => e.resource === 'tweet' && e.operation === 'getLikers');
+	assert.equal(ep.method, 'POST');
+	assert.match(ep.description, /own tweets/);
+	const forOp = props.filter(
+		(p) =>
+			p.displayOptions?.show?.operation?.includes('getLikers') &&
+			p.displayOptions.show.resource.includes('tweet'),
+	);
+	const cookie = forOp.find((p) => p.name === 'cookie');
+	assert.equal(cookie.required, true);
+	assert.equal(cookie.typeOptions.password, true);
+	assert.equal(cookie.routing.send.type, 'body');
+	assert.equal(cookie.routing.send.property, 'cookie');
+	const proxy = forOp.find((p) => p.name === 'proxy');
+	assert.equal(proxy.required, true);
+	assert.equal(proxy.routing.send.type, 'body');
+	assert.equal(proxy.routing.send.property, 'proxy');
+	const options = forOp.find((p) => p.name === 'options').options;
+	for (const name of ['count', 'cursor']) {
+		assert.equal(options.find((o) => o.name === name).routing.send.type, 'body', name);
+	}
+	assert.ok(forOp.find((p) => p.name === 'returnAll'));
+});
+
+test('GET operations send count and cursor in the query', () => {
+	const options = props.find(
+		(p) =>
+			p.name === 'options' &&
+			p.displayOptions.show.resource.includes('tweet') &&
+			p.displayOptions.show.operation.includes('getRetweeters'),
+	).options;
+	for (const name of ['count', 'cursor']) {
+		assert.equal(options.find((o) => o.name === name).routing.send.type, 'query', name);
 	}
 });
 

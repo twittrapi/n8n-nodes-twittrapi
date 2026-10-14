@@ -74,7 +74,7 @@ When you save the credential, n8n tests it by looking up the profile `@X`. That 
 | Tweet | Get | `GET /simpletweet/{tweetId}` |
 | Tweet | Get Conversation | `GET /tweet/{tweetId}` |
 | Tweet | Get Retweeters | `GET /tweet/{tweetId}/retweets` |
-| Tweet | Get Likers | `GET /tweet/{tweetId}/favorites` |
+| Tweet | Get Likers (your own tweets) | `POST /tweet/{tweetId}/favorites` |
 | Tweet | Get Quotes | `GET /tweet/{tweetId}/quotes` |
 | Search | Search (Top, Latest, People, Photos, Videos) | `GET /search?query=&category=` |
 | List | Get Details | `GET /lists/details?listId=` |
@@ -91,6 +91,7 @@ Notes:
 - The user timeline and follower operations accept either a user ID or a username (**Identify User By**). With a username, the API resolves the ID for you.
 - Usernames can be entered with or without `@`.
 - Search accepts the same syntax as the X search box, for example `from:n8n_io since:2026-01-01 -filter:replies`. Queries are limited to 512 characters.
+- **Get Likers** works only for your own tweets: X shows who liked a tweet only to its author. Enter the **Cookie** header of the account that posted the tweet (with `auth_token` and `ct0`) and a **Proxy** (`http://user:pass@host:port`) the request to X goes out through. For anyone else's tweet the list is empty.
 - WOEID `1` is worldwide, `23424977` is the United States. Use **Trend > Get Locations** for the full list.
 
 ## Output and pagination

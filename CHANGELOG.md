@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0
+
+- **Breaking:** **Tweet > Get Likers** is now a POST and needs two new required fields: **Cookie** (the Cookie header of the X account that posted the tweet, with `auth_token` and `ct0`) and **Proxy** (`http://user:pass@host:port`). Count and Cursor are sent in the request body; **Return All** works as before. It works only for your own tweets: X shows who liked a tweet only to its author. Existing workflows using Get Likers must fill in both fields.
+
 ## 0.2.5
 
 - New TwittrAPI logo for the node and the credential. No functional changes.
