@@ -221,7 +221,7 @@ export const ENDPOINTS: Endpoint[] = [
 				required: true,
 				default: '',
 				placeholder: '44196397,783214',
-				description: 'Comma-separated numeric user IDs (max 100)',
+				description: 'Comma-separated numeric user IDs (max 500)',
 				csv: true,
 				maxItems: 100,
 			},
