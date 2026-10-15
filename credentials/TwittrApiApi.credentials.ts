@@ -76,7 +76,8 @@ export class TwittrApiApi implements ICredentialType {
 			name: 'rapidApiHost',
 			type: 'string',
 			default: DEFAULT_RAPIDAPI_HOST,
-			description: 'Value of the X-RapidAPI-Host header',
+			description:
+				'Host of your TwittrAPI listing on RapidAPI, used for the URL and the X-RapidAPI-Host header. Change it if you subscribed to another listing.',
 			displayOptions: {
 				show: {
 					apiType: ['rapidApi'],

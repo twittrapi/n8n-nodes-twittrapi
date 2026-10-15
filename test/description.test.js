@@ -188,4 +188,18 @@ test('base URL expression resolves per mode', () => {
 		run({ apiType: 'rapidApi', rapidApiHost: 'twitter-aio.p.rapidapi.com' }),
 		'https://twitter-aio.p.rapidapi.com',
 	);
+	assert.equal(run({ apiType: 'rapidApi' }), 'https://twitter-aio.p.rapidapi.com');
+});
+
+test('another RapidAPI listing host is used for the URL and the header', async () => {
+	const { BASE_URL_EXPRESSION } = require('../dist/credentials/TwittrApiApi.credentials');
+	const js = BASE_URL_EXPRESSION.replace(/^=\{\{/, '').replace(/\}\}$/, '');
+	const run = (c) => new Function('$credentials', `return (${js});`)(c);
+	const cred = new TwittrApiApi();
+	for (const rapidApiHost of ['twttr.p.rapidapi.com', ' https://twttr.p.rapidapi.com/ ']) {
+		const c = { apiType: 'rapidApi', apiKey: 'k', rapidApiHost };
+		assert.equal(run(c), 'https://twttr.p.rapidapi.com');
+		const { headers } = await cred.authenticate(c, {});
+		assert.equal(headers['x-rapidapi-host'], 'twttr.p.rapidapi.com');
+	}
 });

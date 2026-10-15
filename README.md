@@ -51,9 +51,9 @@ The key is sent in the `X-API-KEY` header.
 
 1. Subscribe to the [TwitterAIO listing on RapidAPI](https://rapidapi.com/viperscores-viperscores-default/api/twitter-aio) and copy your application key.
 2. Set **Connection Type** to **RapidAPI Key** and paste the key into **API Key**.
-3. Leave **RapidAPI Host** at `twitter-aio.p.rapidapi.com`.
+3. Leave **RapidAPI Host** at `twitter-aio.p.rapidapi.com`. Subscribed to another TwittrAPI listing on RapidAPI? Set its host instead, e.g. `twttr.p.rapidapi.com`.
 
-The key is sent in `x-rapidapi-key`, plus `x-rapidapi-host`. Requests go to `https://twitter-aio.p.rapidapi.com`.
+The key is sent in `x-rapidapi-key`, plus `x-rapidapi-host`. Requests go to `https://` plus the RapidAPI Host.
 
 When you save the credential, n8n tests it by looking up the profile `@X`. That test is one normal API call.
 
