@@ -9,10 +9,11 @@ import {
 
 const HINTS: Record<number, string> = {
 	400: 'The API rejected the request. Check the IDs, usernames or query you passed.',
-	401: 'Check the API key and the connection type (Direct or RapidAPI) in the credential.',
+	401: 'Check the API key and the connection type (Direct or RapidAPI) in the credential. For Account operations, the X session cookie may be logged out: copy a fresh one into the X Session credential.',
 	402: 'Your TwittrAPI balance is empty. Top up your account, then run the node again.',
 	403: 'The key is not allowed to use this endpoint, or the content is not available.',
 	404: 'Nothing was found for the given ID or username.',
+	407: 'The proxy in the X Session credential could not be reached.',
 	422: 'One of the parameters has an invalid format (for example a non-numeric ID).',
 	429: 'Rate limit reached. Wait a moment, or enable "Retry On Fail" in the node settings.',
 };

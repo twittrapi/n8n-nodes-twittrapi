@@ -197,7 +197,11 @@ test('count is clamped to 1..100 and defaults to 20 for invalid input', () => {
 	assert.equal(run('50'), 50);
 	assert.equal(run('abc'), 20);
 	const props = new TwittrApi().description.properties;
-	for (const options of props.filter((p) => p.name === 'options')) {
+	// Page size of the read operations (Account > Get DM Inbox has its own count, 1..50).
+	const readOptions = props.filter(
+		(p) => p.name === 'options' && !p.displayOptions.show.resource.includes('account'),
+	);
+	for (const options of readOptions) {
 		const count = options.options.find((o) => o.name === 'count');
 		if (!count) continue;
 		assert.equal(count.default, 20);
@@ -213,8 +217,12 @@ test('user timelines: username is only sent when identifying by username', () =>
 	);
 	assert.ok(usernames.length > 0);
 	for (const p of usernames) assert.deepEqual(p.displayOptions.show.userBy, ['username']);
+	// Account operations send user_id in the body; this is about the read timelines.
 	const userIds = props.filter(
-		(p) => p.name === 'userId' && p.displayOptions?.show?.userBy !== undefined,
+		(p) =>
+			p.name === 'userId' &&
+			p.displayOptions?.show?.userBy !== undefined &&
+			!p.displayOptions.show.resource.includes('account'),
 	);
 	for (const p of userIds) {
 		assert.deepEqual(p.displayOptions.show.userBy, ['id']);

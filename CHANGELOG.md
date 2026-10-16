@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.0] - 2026-10-16
+
+- New **Account** resource that acts on your own X account: Create Tweet (with quote, poll and reply limit), Reply to Tweet, Delete Tweet, Like and Unlike Tweet, Retweet and Undo Retweet, Bookmark Tweet and Remove Bookmark, Follow and Unfollow User, Get DM Inbox, Send DM, Create List, Add and Remove List Member, Create Draft and Get Drafts.
+- New **TwittrAPI X Session API** credential for these operations: Cookie, Proxy and an optional X Chat Passcode, all password fields. They are added to the request body and are never node parameters. See https://twittrapi.com/docs/x-session.
+- Fixed: **User > Get Many by IDs** now accepts up to 500 IDs as the API does. 1.0.0 still stopped at 100.
+
 ## [1.0.0] - 2026-10-15
 
 First stable release: the API is stable and follows semantic versioning.

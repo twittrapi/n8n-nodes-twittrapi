@@ -8,6 +8,22 @@ import {
 import { ENDPOINTS, RESOURCES, type Endpoint, type EndpointParam } from './endpoints';
 import { throwOnApiError } from './errors';
 import { DEFAULT_MAX_PAGES, paginateByCursor } from './pagination';
+import { addXSession } from './xSession';
+
+/**
+ * The node has two credentials: the API key (always) and the X session (only
+ * for the Account resource). Declarative nodes with more than one credential
+ * pick the one that authenticates requests through an "authentication"
+ * parameter, so this hidden parameter always selects the API key. The X
+ * session is read in a preSend hook (xSession.ts) and goes into the body.
+ * The credentials themselves are listed in TwittrApi.node.ts.
+ */
+export const AUTHENTICATION_PROPERTY: INodeProperties = {
+	displayName: 'Authentication',
+	name: 'authentication',
+	type: 'hidden',
+	default: 'twittrApiApi',
+};
 
 /**
  * Count is an integer 1..100 (the API maximum). Expressions can bypass the UI
@@ -84,6 +100,9 @@ export function buildUrlExpression(ep: Endpoint): string {
 
 /** Expression for a query or body value, applying the param's cleanup rules. */
 function sendValueExpression(param: EndpointParam): string | undefined {
+	if (param.list) {
+		return `={{ String($value).split(',').map((s) => s.trim()).filter((s) => s) }}`;
+	}
 	if (param.csv) {
 		return `={{ String($value).split(',').map((s) => s.trim()).filter((s) => s).join(',') }}`;
 	}
@@ -136,7 +155,7 @@ function paramToProperty(
 	}
 	if (param.password) prop.typeOptions = { ...prop.typeOptions, password: true };
 	if (!inCollection) {
-		prop.displayOptions = show(ep);
+		prop.displayOptions = show(ep, param.showWhen);
 		if (param.required && param.type === 'string') prop.required = true;
 	}
 	if (param.in === 'query' || param.in === 'body') {
@@ -286,6 +305,7 @@ function operationOption(ep: Endpoint): INodePropertyOptions {
 				method: ep.method,
 				url: buildUrlExpression(ep),
 			},
+			...(ep.xSession ? { send: { preSend: [addXSession] } } : {}),
 			output: {
 				postReceive: [throwOnApiError],
 			},
@@ -295,6 +315,7 @@ function operationOption(ep: Endpoint): INodePropertyOptions {
 
 export function buildProperties(): INodeProperties[] {
 	const properties: INodeProperties[] = [
+		AUTHENTICATION_PROPERTY,
 		{
 			displayName: 'Resource',
 			name: 'resource',

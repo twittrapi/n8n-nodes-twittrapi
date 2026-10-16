@@ -7,7 +7,7 @@
 [![npm](https://img.shields.io/npm/v/n8n-nodes-twittrapi.svg)](https://www.npmjs.com/package/n8n-nodes-twittrapi)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 
-An [n8n](https://n8n.io/) community node for [TwittrAPI](https://www.twittrapi.com), a REST API for public Twitter/X data: tweets, profiles, followers, search, lists and communities. Pay as you go from $0.065 per 1,000 calls, no X developer account.
+An [n8n](https://n8n.io/) community node for [TwittrAPI](https://www.twittrapi.com), a REST API for public Twitter/X data: tweets, profiles, followers, search, lists and communities. With your own X session it can also post, like, follow and send DMs. Pay as you go from $0.065 per 1,000 calls, no X developer account.
 
 > **Get an API key:** [twittrapi.com/start](https://twittrapi.com/start?utm_source=github&utm_medium=readme&utm_campaign=n8n-nodes-twittrapi) · [Pricing](https://twittrapi.com/pricing?utm_source=github&utm_medium=readme&utm_campaign=n8n-nodes-twittrapi) · [Docs](https://twittrapi.com/docs?utm_source=github&utm_medium=readme&utm_campaign=n8n-nodes-twittrapi) · [Status](https://twittrapi.com/status) · also available on [RapidAPI](https://rapidapi.com/viperscores-viperscores-default/api/twitter-aio)
 
@@ -57,6 +57,18 @@ The key is sent in `x-rapidapi-key`, plus `x-rapidapi-host`. Requests go to `htt
 
 When you save the credential, n8n tests it by looking up the profile `@X`. That test is one normal API call.
 
+### X session (Account operations)
+
+The **Account** operations act on your own X account, so they also need a **TwittrAPI X Session API** credential:
+
+- **Cookie**: the cookie of your logged-in x.com session, with `auth_token` and `ct0` (direct messages also need `twid`).
+- **Proxy**: your proxy, `http://user:pass@host:port`. The requests to X go out through it.
+- **X Chat Passcode** (optional): needed to send direct messages and to read message text in the inbox.
+
+How to get the cookie and choose a proxy: [twittrapi.com/docs/x-session](https://twittrapi.com/docs/x-session).
+
+All three are password fields, stored encrypted like any n8n credential, and never node parameters. The credential test only checks the format; it makes no request to X.
+
 ## Operations
 
 | Resource | Operation | Endpoint |
@@ -64,7 +76,7 @@ When you save the credential, n8n tests it by looking up the profile `@X`. That 
 | User | Get by Username | `GET /user/by/username/{username}` |
 | User | Get by ID | `GET /user/{userId}` |
 | User | Username to ID | `GET /username/to/id/{username}` |
-| User | Get Many by IDs (max 100) | `GET /user/users/by/ids?ids=` |
+| User | Get Many by IDs (max 500) | `GET /user/users/by/ids?ids=` |
 | User | Get Tweets | `GET /user/{userId}/tweets` |
 | User | Get Tweets and Replies | `GET /user/{userId}/tweetsAndReplies` |
 | User | Get Media | `GET /user/{userId}/media` |
@@ -85,6 +97,18 @@ When you save the credential, n8n tests it by looking up the profile `@X`. That 
 | Community | Search | `GET /communities/search/{term}` |
 | Trend | Get by Location (WOEID) | `GET /trends/{woeid}` |
 | Trend | Get Locations | `GET /misc/locations` |
+| Account | Create Tweet (optional quote, poll, reply limit) | `POST /client/create` |
+| Account | Reply to Tweet | `POST /client/reply` |
+| Account | Delete Tweet | `POST /client/deleteTweet` |
+| Account | Like Tweet, Unlike Tweet | `POST /client/like`, `/client/unlike` |
+| Account | Retweet, Undo Retweet | `POST /client/retweet`, `/client/unretweet` |
+| Account | Bookmark Tweet, Remove Bookmark | `POST /client/bookmark`, `/client/unbookmark` |
+| Account | Follow User, Unfollow User | `POST /client/follow`, `/client/unfollow` |
+| Account | Get DM Inbox | `POST /client/dm/inbox` |
+| Account | Send DM | `POST /client/dm/send` |
+| Account | Create List | `POST /client/lists/create` |
+| Account | Add List Member, Remove List Member | `POST /client/lists/members/add`, `/remove` |
+| Account | Create Draft, Get Drafts | `POST /client/drafts/create`, `/client/drafts` |
 
 Notes:
 
@@ -92,6 +116,7 @@ Notes:
 - Usernames can be entered with or without `@`.
 - Search accepts the same syntax as the X search box, for example `from:n8n_io since:2026-01-01 -filter:replies`. Queries are limited to 512 characters.
 - **Get Likers** works only for your own tweets: X shows who liked a tweet only to its author. Enter the **Cookie** header of the account that posted the tweet (with `auth_token` and `ct0`) and a **Proxy** (`http://user:pass@host:port`) the request to X goes out through. For anyone else's tweet the list is empty.
+- **Account** operations use your [X session credential](#x-session-account-operations). Each is one billed call. Poll choices are comma-separated (2 to 4); **Send DM** goes to a user ID or a conversation ID from **Get DM Inbox**.
 - WOEID `1` is worldwide, `23424977` is the United States. Use **Trend > Get Locations** for the full list.
 
 ## Output and pagination
@@ -112,7 +137,8 @@ The API answers errors as `{"error": "..."}`. The node shows that message with a
 
 - `402`: your balance is empty. Top up and run again.
 - `429`: rate limit. Wait, or turn on **Retry On Fail** in the node settings.
-- `401`: wrong key or wrong connection type in the credential.
+- `401`: wrong key or wrong connection type in the credential. For Account operations it can also mean the X session cookie is logged out.
+- `407`: the proxy in the X session credential could not be reached.
 
 Enable **Continue On Fail** if a single bad ID should not stop the workflow.
 
