@@ -83,20 +83,27 @@ All three are password fields, stored encrypted like any n8n credential, and nev
 | User | Get Followers | `GET /user/{userId}/followers` |
 | User | Get Following | `GET /user/{userId}/followings` |
 | User | Get Verified Followers | `GET /user/{userId}/verifiedFollowers` |
+| User | Get Affiliates | `GET /user/{userId}/affiliates` |
+| User | Get About for Many (max 20) | `GET /user/about/batch?usernames=` |
+| User | Get Relationships (one account vs. max 50) | `GET /user/friendships/batch?source_screen_name=&target_screen_names=` |
 | Tweet | Get | `GET /simpletweet/{tweetId}` |
 | Tweet | Get Conversation | `GET /tweet/{tweetId}` |
 | Tweet | Get Retweeters | `GET /tweet/{tweetId}/retweets` |
 | Tweet | Get Likers (your own tweets) | `POST /tweet/{tweetId}/favorites` |
 | Tweet | Get Quotes | `GET /tweet/{tweetId}/quotes` |
+| Tweet | Get Replies | `GET /tweet/{tweetId}/replies` |
+| Tweet | Get Thread | `GET /tweet/{tweetId}/thread` |
 | Search | Search (Top, Latest, People, Photos, Videos) | `GET /search?query=&category=` |
 | List | Get Details | `GET /lists/details?listId=` |
 | List | Get Tweets | `GET /lists/tweets?listId=` |
 | List | Get Members | `GET /lists/members?listId=` |
 | Community | Get | `GET /communities/{communityId}` |
+| Community | Get About | `GET /communities/{communityId}/about` |
 | Community | Get Tweets | `GET /communities/{communityId}/tweets` |
 | Community | Search | `GET /communities/search/{term}` |
 | Trend | Get by Location (WOEID) | `GET /trends/{woeid}` |
 | Trend | Get Locations | `GET /misc/locations` |
+| Space | Get | `GET /spaces/{spaceId}` |
 | Account | Create Tweet (optional quote, poll, reply limit) | `POST /client/create` |
 | Account | Reply to Tweet | `POST /client/reply` |
 | Account | Delete Tweet | `POST /client/deleteTweet` |
@@ -109,6 +116,12 @@ All three are password fields, stored encrypted like any n8n credential, and nev
 | Account | Create List | `POST /client/lists/create` |
 | Account | Add List Member, Remove List Member | `POST /client/lists/members/add`, `/remove` |
 | Account | Create Draft, Get Drafts | `POST /client/drafts/create`, `/client/drafts` |
+| Account | Get Bookmark Folders, Get Bookmark Folder Tweets | `POST /client/bookmarks/folders`, `/client/bookmarks/folder` |
+| Account | Search Bookmarks | `POST /client/bookmarks/search` |
+| Account | Get Your Communities | `POST /client/communities/memberships` |
+| Account | Get Articles, Get Article | `POST /client/articles`, `/client/articles/get` |
+| Account | Create Article, Update Article | `POST /client/articles/create`, `/client/articles/update` |
+| Account | Publish Article, Unpublish Article, Delete Article | `POST /client/articles/publish`, `/unpublish`, `/delete` |
 
 Notes:
 
@@ -117,6 +130,8 @@ Notes:
 - Search accepts the same syntax as the X search box, for example `from:n8n_io since:2026-01-01 -filter:replies`. Queries are limited to 512 characters.
 - **Get Likers** works only for your own tweets: X shows who liked a tweet only to its author. Enter the **Cookie** header of the account that posted the tweet (with `auth_token` and `ct0`) and a **Proxy** (`http://user:pass@host:port`) the request to X goes out through. For anyone else's tweet the list is empty.
 - **Account** operations use your [X session credential](#x-session-account-operations). Each is one billed call. Poll choices are comma-separated (2 to 4); **Send DM** goes to a user ID or a conversation ID from **Get DM Inbox**.
+- Bookmark folders and articles need X Premium on the account. Account operations return `{"status_code", "response"}` with X's answer as a JSON string in `response`.
+- **Get Relationships** and **Get About for Many** are billed one call per username (duplicates count once).
 - WOEID `1` is worldwide, `23424977` is the United States. Use **Trend > Get Locations** for the full list.
 
 ## Output and pagination

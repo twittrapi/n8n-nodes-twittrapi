@@ -36,22 +36,33 @@ test('account resource has the expected operations, all POST to /client', () => 
 	assert.deepEqual(account.map((e) => e.operation).sort(), [
 		'addListMember',
 		'bookmarkTweet',
+		'createArticle',
 		'createDraft',
 		'createList',
 		'createTweet',
+		'deleteArticle',
 		'deleteTweet',
 		'followUser',
+		'getArticle',
+		'getArticles',
+		'getBookmarkFolderTweets',
+		'getBookmarkFolders',
+		'getCommunityMemberships',
 		'getDmInbox',
 		'getDrafts',
 		'likeTweet',
+		'publishArticle',
 		'removeListMember',
 		'replyToTweet',
 		'retweet',
+		'searchBookmarks',
 		'sendDm',
 		'unbookmarkTweet',
 		'unfollowUser',
 		'unlikeTweet',
+		'unpublishArticle',
 		'unretweet',
+		'updateArticle',
 	]);
 	for (const ep of account) {
 		assert.equal(ep.method, 'POST', ep.operation);
@@ -200,4 +211,114 @@ test('Get Many by IDs allows 500 IDs', () => {
 	const ep = ENDPOINTS.find((e) => e.resource === 'user' && e.operation === 'getManyByIds');
 	assert.match(ep.description, /500/);
 	assert.equal(ep.params[0].maxItems, 500);
+});
+
+const sendOf = (operation, name) => {
+	const top = forOp(operation).find((p) => p.name === name);
+	if (top) return top.routing.send;
+	const options = forOp(operation).find((p) => p.name === 'options');
+	return options.options.find((o) => o.name === name).routing.send;
+};
+
+const evalValue = (expr, value) =>
+	new Function('$value', `return (${expr.replace(/^=\{\{/, '').replace(/\}\}$/, '')});`)(value);
+
+test('bookmark, community and article operations post to the new /client routes', () => {
+	const paths = Object.fromEntries(account.map((e) => [e.operation, e.path]));
+	assert.equal(paths.getBookmarkFolders, '/client/bookmarks/folders');
+	assert.equal(paths.getBookmarkFolderTweets, '/client/bookmarks/folder');
+	assert.equal(paths.searchBookmarks, '/client/bookmarks/search');
+	assert.equal(paths.getCommunityMemberships, '/client/communities/memberships');
+	assert.equal(paths.getArticles, '/client/articles');
+	for (const op of ['get', 'create', 'update', 'publish', 'unpublish', 'delete']) {
+		const name = `${op}Article`;
+		assert.equal(paths[name], `/client/articles/${op}`, name);
+	}
+});
+
+test('cursor-only account reads have Return All and Cursor but no Count', () => {
+	for (const operation of [
+		'getBookmarkFolders',
+		'getBookmarkFolderTweets',
+		'getCommunityMemberships',
+	]) {
+		assert.ok(
+			forOp(operation).find((p) => p.name === 'returnAll'),
+			operation,
+		);
+		const names = forOp(operation)
+			.find((p) => p.name === 'options')
+			.options.map((o) => o.name);
+		assert.deepEqual(names, ['cursor'], operation);
+		assert.equal(sendOf(operation, 'cursor').type, 'body', operation);
+	}
+	for (const operation of ['searchBookmarks', 'getArticles']) {
+		assert.equal(sendOf(operation, 'count').type, 'body', operation);
+		assert.equal(sendOf(operation, 'cursor').type, 'body', operation);
+	}
+});
+
+test('new account fields use the API names', () => {
+	assert.equal(sendOf('getBookmarkFolderTweets', 'folderId').property, 'folder_id');
+	assert.equal(sendOf('searchBookmarks', 'query').property, 'query');
+	assert.equal(sendOf('getArticles', 'lifecycle').property, 'lifecycle');
+	assert.equal(sendOf('getArticles', 'userId').property, 'user_id');
+	for (const op of [
+		'getArticle',
+		'updateArticle',
+		'publishArticle',
+		'unpublishArticle',
+		'deleteArticle',
+	]) {
+		assert.equal(sendOf(op, 'articleId').property, 'article_id', op);
+		assert.equal(forOp(op).find((p) => p.name === 'articleId').required, true, op);
+	}
+	assert.equal(sendOf('createArticle', 'contentState').property, 'content_state');
+	assert.equal(sendOf('updateArticle', 'coverMediaId').property, 'cover_media_id');
+	assert.equal(sendOf('updateArticle', 'coverMediaCategory').property, 'cover_media_category');
+	assert.equal(sendOf('updateArticle', 'removeCover').property, 'remove_cover');
+	assert.equal(sendOf('publishArticle', 'tweetText').property, 'tweet_text');
+	assert.equal(sendOf('publishArticle', 'replyControl').property, 'reply_control');
+	assert.equal(sendOf('publishArticle', 'visibility').property, 'visibility');
+});
+
+test('article choices match the values the API accepts', () => {
+	const values = (op, name) => {
+		const top = forOp(op).find((p) => p.name === name);
+		const prop =
+			top ??
+			forOp(op)
+				.find((p) => p.name === 'options')
+				.options.find((o) => o.name === name);
+		return prop.options.map((o) => o.value).sort();
+	};
+	assert.deepEqual(values('getArticles', 'lifecycle'), ['draft', 'published']);
+	assert.deepEqual(values('publishArticle', 'visibility'), ['public', 'subscribers']);
+	assert.deepEqual(values('publishArticle', 'replyControl'), [
+		'all',
+		'byinvitation',
+		'community',
+		'verified',
+	]);
+	assert.deepEqual(values('updateArticle', 'coverMediaCategory'), [
+		'AmplifyVideo',
+		'DraftTweetGif',
+		'DraftTweetImage',
+	]);
+});
+
+test('Content State is sent as a JSON object', () => {
+	const prop = forOp('updateArticle')
+		.find((p) => p.name === 'options')
+		.options.find((o) => o.name === 'contentState');
+	assert.equal(prop.type, 'json');
+	const state = { blocks: [{ text: 'Hi' }], entity_map: [] };
+	assert.deepEqual(evalValue(prop.routing.send.value, JSON.stringify(state)), state);
+	assert.deepEqual(evalValue(prop.routing.send.value, state), state);
+	assert.equal(evalValue(prop.routing.send.value, '  '), undefined);
+	assert.throws(() => evalValue(prop.routing.send.value, '{oops'));
+	const text = forOp('createArticle')
+		.find((p) => p.name === 'options')
+		.options.find((o) => o.name === 'text');
+	assert.equal(text.typeOptions.rows, 5);
 });

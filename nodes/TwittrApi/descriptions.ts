@@ -106,6 +106,9 @@ function sendValueExpression(param: EndpointParam): string | undefined {
 	if (param.csv) {
 		return `={{ String($value).split(',').map((s) => s.trim()).filter((s) => s).join(',') }}`;
 	}
+	if (param.type === 'json') {
+		return `={{ typeof $value === 'string' ? ($value.trim() ? JSON.parse($value) : undefined) : $value }}`;
+	}
 	if (param.stripAt) return `={{ String($value).trim().replace(/^@/, '') }}`;
 	if (param.type === 'string') return `={{ String($value).trim() }}`;
 	return undefined;
@@ -154,6 +157,7 @@ function paramToProperty(
 		prop.typeOptions = { minValue: param.minValue, maxValue: param.maxValue };
 	}
 	if (param.password) prop.typeOptions = { ...prop.typeOptions, password: true };
+	if (param.rows) prop.typeOptions = { ...prop.typeOptions, rows: param.rows };
 	if (!inCollection) {
 		prop.displayOptions = show(ep, param.showWhen);
 		if (param.required && param.type === 'string') prop.required = true;
@@ -245,40 +249,40 @@ function optionsCollection(ep: Endpoint): INodeProperties | undefined {
 		.filter((p) => !p.required)
 		.map((p) => paramToProperty(ep, p, true));
 
+	if (ep.paginated && !ep.noCount) {
+		options.push({
+			displayName: 'Count',
+			name: 'count',
+			type: 'number',
+			default: 20,
+			typeOptions: { minValue: 1, maxValue: 100 },
+			description:
+				'Results requested per page. X treats this as a hint, so pages may contain fewer or more entries.',
+			routing: {
+				send: {
+					type: pageParamsIn(ep),
+					property: 'count',
+					value: COUNT_VALUE_EXPRESSION,
+				},
+			},
+		});
+	}
 	if (ep.paginated) {
-		options.push(
-			{
-				displayName: 'Count',
-				name: 'count',
-				type: 'number',
-				default: 20,
-				typeOptions: { minValue: 1, maxValue: 100 },
-				description:
-					'Results requested per page. X treats this as a hint, so pages may contain fewer or more entries.',
-				routing: {
-					send: {
-						type: pageParamsIn(ep),
-						property: 'count',
-						value: COUNT_VALUE_EXPRESSION,
-					},
+		options.push({
+			displayName: 'Cursor',
+			name: 'cursor',
+			type: 'string',
+			default: '',
+			description:
+				'Cursor from a previous response to continue from (the "value" of the entry with cursorType "Bottom", or nextCursor in the Simple format). Leave empty for the first page.',
+			routing: {
+				send: {
+					type: pageParamsIn(ep),
+					property: 'cursor',
+					value: '={{ String($value).trim() || undefined }}',
 				},
 			},
-			{
-				displayName: 'Cursor',
-				name: 'cursor',
-				type: 'string',
-				default: '',
-				description:
-					'Cursor from a previous response to continue from (the "value" of the entry with cursorType "Bottom", or nextCursor in the Simple format). Leave empty for the first page.',
-				routing: {
-					send: {
-						type: pageParamsIn(ep),
-						property: 'cursor',
-						value: '={{ String($value).trim() || undefined }}',
-					},
-				},
-			},
-		);
+		});
 	}
 
 	if (!options.length) return undefined;

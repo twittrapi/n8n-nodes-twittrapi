@@ -114,3 +114,35 @@ test('apiErrorMessage reads {"error": "..."} and plain text bodies', () => {
 	assert.equal(apiErrorMessage('Bad gateway'), 'Bad gateway');
 	assert.equal(apiErrorMessage(undefined), undefined);
 });
+
+test('nextCursor reads the cursor inside an account {status_code, response} wrapper', () => {
+	const { unwrapAccountResponse } = require('../dist/nodes/TwittrApi/pagination');
+	const wrap = (body) => ({ status_code: 200, response: JSON.stringify(body) });
+	assert.equal(nextCursor(wrap(followersPage(['1'], 'B1')), new Set()), 'B1');
+	assert.equal(nextCursor(wrap(slicePage(2, 'S1')), new Set()), 'S1');
+	assert.equal(nextCursor(wrap(emptyPage('B2')), new Set()), undefined);
+	assert.equal(nextCursor({ status_code: 200, response: 'not json' }, new Set()), undefined);
+	const plain = { data: {} };
+	assert.equal(unwrapAccountResponse(plain), plain);
+});
+
+test('paginateByCursor follows account pages in the body', async () => {
+	const wrap = (body) => ({ status_code: 200, response: JSON.stringify(body) });
+	const pages = [wrap(slicePage(2, 'S1')), wrap(slicePage(1, 'S2')), wrap(slicePage(0, '0'))];
+	const calls = [];
+	const ctx = {
+		getNodeParameter: (name, fallback) => (name === 'maxPages' ? 10 : fallback),
+		makeRoutingRequest: async (opts) => {
+			calls.push({ ...opts.options.body });
+			return [{ json: pages[calls.length - 1] }];
+		},
+	};
+	const items = await paginateByCursor.call(ctx, {
+		options: { url: '/client/bookmarks/folders', method: 'POST', body: {} },
+		preSend: [],
+		postReceive: [],
+	});
+	assert.equal(items.length, 3);
+	assert.deepEqual(calls, [{}, { cursor: 'S1' }, { cursor: 'S2' }]);
+	assert.equal(typeof items[0].json.response, 'string');
+});

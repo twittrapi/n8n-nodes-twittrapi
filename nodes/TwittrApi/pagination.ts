@@ -93,6 +93,22 @@ export function isSimplePage(data: unknown): data is {
 }
 
 /**
+ * Account operations answer `{status_code, response}` with X's body as a JSON
+ * string in `response`. Returns X's parsed body for those, else `data` itself.
+ * Only used to find the next cursor; the output item stays as the API sent it.
+ */
+export function unwrapAccountResponse(data: unknown): unknown {
+	if (data === null || typeof data !== 'object' || Array.isArray(data)) return data;
+	const obj = data as IDataObject;
+	if (typeof obj.status_code !== 'number' || typeof obj.response !== 'string') return data;
+	try {
+		return JSON.parse(obj.response) as unknown;
+	} catch {
+		return data;
+	}
+}
+
+/**
  * Decide whether to fetch another page after receiving `data`.
  * Returns the cursor to use, or undefined to stop.
  *
@@ -100,6 +116,7 @@ export function isSimplePage(data: unknown): data is {
  * hasNextPage false on the last page.
  */
 export function nextCursor(data: unknown, previousCursors: Set<string>): string | undefined {
+	data = unwrapAccountResponse(data);
 	if (isSimplePage(data)) {
 		const cursor = data.nextCursor;
 		if (!data.hasNextPage || data.data.length === 0) return undefined;

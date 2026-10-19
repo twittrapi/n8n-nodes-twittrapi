@@ -84,6 +84,23 @@ test('URL expressions resolve to the expected paths', () => {
 		'/communities/search/a%20b%2Fc',
 	);
 	assert.equal(url('trend', 'get', { woeid: '1' }), '/trends/1');
+	assert.equal(url('space', 'get', { spaceId: ' 1YqKDqWqdPLsV ' }), '/spaces/1YqKDqWqdPLsV');
+	assert.equal(url('community', 'getAbout', { communityId: '15' }), '/communities/15/about');
+	assert.equal(url('tweet', 'getReplies', { tweetId: '20' }), '/tweet/20/replies');
+	assert.equal(url('tweet', 'getThread', { tweetId: '20' }), '/tweet/20/thread');
+	assert.equal(
+		url('user', 'getAffiliates', { userBy: 'username', username: 'X' }),
+		'/user/-1/affiliates',
+	);
+	assert.equal(url('user', 'getAffiliates', { userBy: 'id', userId: '12' }), '/user/12/affiliates');
+	assert.equal(
+		buildUrlExpression(ENDPOINTS.find((e) => e.operation === 'getRelationships')),
+		'/user/friendships/batch',
+	);
+	assert.equal(
+		buildUrlExpression(ENDPOINTS.find((e) => e.operation === 'getAboutMany')),
+		'/user/about/batch',
+	);
 	assert.equal(buildUrlExpression(ENDPOINTS.find((e) => e.path === '/search')), '/search');
 });
 
@@ -102,7 +119,8 @@ test('paginated operations expose returnAll, maxPages, count and cursor', () => 
 		);
 		const options = forOp.find((p) => p.name === 'options');
 		const names = options.options.map((o) => o.name);
-		assert.ok(names.includes('count') && names.includes('cursor'), ep.path);
+		assert.ok(names.includes('cursor'), ep.path);
+		assert.equal(names.includes('count'), !ep.noCount, ep.path);
 	}
 });
 
@@ -202,4 +220,78 @@ test('another RapidAPI listing host is used for the URL and the header', async (
 		const { headers } = await cred.authenticate(c, {});
 		assert.equal(headers['x-rapidapi-host'], 'twttr.p.rapidapi.com');
 	}
+});
+
+const opProps = (resource, operation) =>
+	props.filter(
+		(p) =>
+			p.displayOptions?.show?.operation?.includes(operation) &&
+			p.displayOptions.show.resource.includes(resource),
+	);
+
+test('new public reads are GET operations of the fitting resources', () => {
+	const find = (resource, operation) =>
+		ENDPOINTS.find((e) => e.resource === resource && e.operation === operation);
+	for (const [resource, operation, paginated] of [
+		['space', 'get', false],
+		['community', 'getAbout', false],
+		['user', 'getAffiliates', true],
+		['user', 'getRelationships', false],
+		['user', 'getAboutMany', false],
+		['tweet', 'getReplies', true],
+		['tweet', 'getThread', false],
+	]) {
+		const ep = find(resource, operation);
+		assert.ok(ep, `${resource}.${operation}`);
+		assert.equal(ep.method, 'GET', operation);
+		assert.equal(Boolean(ep.paginated), paginated, operation);
+		assert.equal(ep.xSession, undefined, operation);
+	}
+	assert.equal(find('user', 'getAffiliates').userLookup, true);
+	assert.ok(RESOURCES.find((r) => r.value === 'space'));
+});
+
+test('batch lookups send the API names and cap the list sizes', () => {
+	const rel = opProps('user', 'getRelationships');
+	const source = rel.find((p) => p.name === 'sourceUsername');
+	assert.equal(source.required, true);
+	assert.equal(source.routing.send.type, 'query');
+	assert.equal(source.routing.send.property, 'source_screen_name');
+	const targets = rel.find((p) => p.name === 'targetUsernames');
+	assert.equal(targets.routing.send.property, 'target_screen_names');
+	assert.equal(targets.routing.send.preSend.length, 1);
+	const about = opProps('user', 'getAboutMany').find((p) => p.name === 'usernames');
+	assert.equal(about.routing.send.property, 'usernames');
+	assert.equal(about.routing.send.preSend.length, 1);
+	const ep = (op) => ENDPOINTS.find((e) => e.operation === op);
+	assert.equal(ep('getRelationships').params[1].maxItems, 50);
+	assert.equal(ep('getAboutMany').params[0].maxItems, 20);
+	assert.match(ep('getRelationships').description, /per target/);
+	assert.match(ep('getAboutMany').description, /per username/);
+});
+
+test('maxItems check rejects more than 50 targets', async () => {
+	const targets = opProps('user', 'getRelationships').find((p) => p.name === 'targetUsernames');
+	const [check] = targets.routing.send.preSend;
+	const ctx = (value) => ({
+		getNodeParameter: () => value,
+		getNode: () => ({ name: 'TwittrAPI' }),
+	});
+	const fifty = Array.from({ length: 50 }, (_, i) => `u${i}`).join(',');
+	await assert.doesNotReject(check.call(ctx(fifty), {}));
+	await assert.rejects(check.call(ctx(`${fifty},u50`)), /at most 50/);
+});
+
+test('Get Replies has ranking mode and promoted content options in the query', () => {
+	const options = opProps('tweet', 'getReplies').find((p) => p.name === 'options').options;
+	const ranking = options.find((o) => o.name === 'rankingMode');
+	assert.deepEqual(
+		ranking.options.map((o) => o.value),
+		['Relevance', 'Recency', 'Likes'],
+	);
+	assert.equal(ranking.routing.send.type, 'query');
+	const promoted = options.find((o) => o.name === 'includePromotedContent');
+	assert.equal(promoted.type, 'boolean');
+	assert.equal(promoted.routing.send.type, 'query');
+	assert.equal(promoted.routing.send.property, 'includePromotedContent');
 });
