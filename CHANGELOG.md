@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-04
+
 - New **Account** operations for message requests: Get DM Requests, Accept DM Request and Decline DM Request. Accept and Decline need the X Chat passcode in the credential.
 
 ## [1.2.0] - 2026-10-19
