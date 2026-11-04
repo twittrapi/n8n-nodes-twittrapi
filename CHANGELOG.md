@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+- New **Account** operations for message requests: Get DM Requests, Accept DM Request and Decline DM Request. Accept and Decline need the X Chat passcode in the credential.
+
 ## [1.2.0] - 2026-10-19
 
 - New public reads: **Space > Get**, **Community > Get About**, **User > Get Affiliates** (by ID or username, with **Return All**), **User > Get Relationships** (whether one account follows up to 50 others and the other way round) and **User > Get About for Many** (up to 20 usernames), **Tweet > Get Replies** (only the replies, with ranking mode) and **Tweet > Get Thread** (the author's own thread). Get Relationships and Get About for Many are billed one call per username.

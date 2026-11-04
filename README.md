@@ -63,7 +63,7 @@ The **Account** operations act on your own X account, so they also need a **Twit
 
 - **Cookie**: the cookie of your logged-in x.com session, with `auth_token` and `ct0` (direct messages also need `twid`).
 - **Proxy**: your proxy, `http://user:pass@host:port`. The requests to X go out through it.
-- **X Chat Passcode** (optional): needed to send direct messages and to read message text in the inbox.
+- **X Chat Passcode** (optional): needed to send direct messages, to accept or decline message requests, and to read message text in the inbox.
 
 How to get the cookie and choose a proxy: [twittrapi.com/docs/x-session](https://twittrapi.com/docs/x-session).
 
@@ -113,6 +113,8 @@ All three are password fields, stored encrypted like any n8n credential, and nev
 | Account | Follow User, Unfollow User | `POST /client/follow`, `/client/unfollow` |
 | Account | Get DM Inbox | `POST /client/dm/inbox` |
 | Account | Send DM | `POST /client/dm/send` |
+| Account | Get DM Requests | `POST /client/dm/requests` |
+| Account | Accept DM Request, Decline DM Request | `POST /client/dm/requests/accept`, `/decline` |
 | Account | Create List | `POST /client/lists/create` |
 | Account | Add List Member, Remove List Member | `POST /client/lists/members/add`, `/remove` |
 | Account | Create Draft, Get Drafts | `POST /client/drafts/create`, `/client/drafts` |
@@ -129,7 +131,7 @@ Notes:
 - Usernames can be entered with or without `@`.
 - Search accepts the same syntax as the X search box, for example `from:n8n_io since:2026-01-01 -filter:replies`. Queries are limited to 512 characters.
 - **Get Likers** works only for your own tweets: X shows who liked a tweet only to its author. Enter the **Cookie** header of the account that posted the tweet (with `auth_token` and `ct0`) and a **Proxy** (`http://user:pass@host:port`) the request to X goes out through. For anyone else's tweet the list is empty.
-- **Account** operations use your [X session credential](#x-session-account-operations). Each is one billed call. Poll choices are comma-separated (2 to 4); **Send DM** goes to a user ID or a conversation ID from **Get DM Inbox**.
+- **Account** operations use your [X session credential](#x-session-account-operations). Each is one billed call. Poll choices are comma-separated (2 to 4); **Send DM** goes to a user ID or a conversation ID from **Get DM Inbox**. **Accept DM Request** and **Decline DM Request** take a user ID or a conversation ID from **Get DM Requests**; the sender of a declined request is not told.
 - Bookmark folders and articles need X Premium on the account. Account operations return `{"status_code", "response"}` with X's answer as a JSON string in `response`.
 - **Get Relationships** and **Get About for Many** are billed one call per username (duplicates count once).
 - WOEID `1` is worldwide, `23424977` is the United States. Use **Trend > Get Locations** for the full list.

@@ -34,12 +34,14 @@ function ctx(credentials) {
 
 test('account resource has the expected operations, all POST to /client', () => {
 	assert.deepEqual(account.map((e) => e.operation).sort(), [
+		'acceptDmRequest',
 		'addListMember',
 		'bookmarkTweet',
 		'createArticle',
 		'createDraft',
 		'createList',
 		'createTweet',
+		'declineDmRequest',
 		'deleteArticle',
 		'deleteTweet',
 		'followUser',
@@ -49,6 +51,7 @@ test('account resource has the expected operations, all POST to /client', () => 
 		'getBookmarkFolders',
 		'getCommunityMemberships',
 		'getDmInbox',
+		'getDmRequests',
 		'getDrafts',
 		'likeTweet',
 		'publishArticle',
@@ -280,6 +283,62 @@ test('new account fields use the API names', () => {
 	assert.equal(sendOf('publishArticle', 'tweetText').property, 'tweet_text');
 	assert.equal(sendOf('publishArticle', 'replyControl').property, 'reply_control');
 	assert.equal(sendOf('publishArticle', 'visibility').property, 'visibility');
+});
+
+test('DM request operations post to the /client/dm/requests routes', () => {
+	const paths = Object.fromEntries(account.map((e) => [e.operation, e.path]));
+	assert.equal(paths.getDmRequests, '/client/dm/requests');
+	assert.equal(paths.acceptDmRequest, '/client/dm/requests/accept');
+	assert.equal(paths.declineDmRequest, '/client/dm/requests/decline');
+});
+
+test('Get DM Requests has optional folder and count', () => {
+	assert.equal(forOp('getDmRequests').find((p) => p.name === 'folder'), undefined);
+	assert.equal(forOp('getDmRequests').find((p) => p.name === 'count'), undefined);
+	const options = forOp('getDmRequests').find((p) => p.name === 'options').options;
+	const folder = options.find((o) => o.name === 'folder');
+	assert.deepEqual(folder.options.map((o) => o.value).sort(), ['other', 'you_may_know']);
+	assert.equal(sendOf('getDmRequests', 'folder').property, 'folder');
+	assert.equal(sendOf('getDmRequests', 'folder').type, 'body');
+	const count = options.find((o) => o.name === 'count');
+	assert.equal(count.typeOptions.minValue, 1);
+	assert.equal(count.typeOptions.maxValue, 50);
+	assert.equal(sendOf('getDmRequests', 'count').type, 'body');
+});
+
+test('accept and decline target a conversation or a user', () => {
+	for (const operation of ['acceptDmRequest', 'declineDmRequest']) {
+		const fields = forOp(operation);
+		assert.equal(fields.find((p) => p.name === 'requestBy').routing, undefined, operation);
+		const conversationId = fields.find((p) => p.name === 'conversationId');
+		assert.equal(conversationId.required, true, operation);
+		assert.deepEqual(conversationId.displayOptions.show.requestBy, ['conversation'], operation);
+		assert.equal(sendOf(operation, 'conversationId').property, 'conversation_id', operation);
+		const userId = fields.find((p) => p.name === 'userId');
+		assert.equal(userId.required, true, operation);
+		assert.deepEqual(userId.displayOptions.show.requestBy, ['user'], operation);
+		assert.equal(sendOf(operation, 'userId').property, 'user_id', operation);
+	}
+});
+
+test('accept needs text, decline does not', () => {
+	const text = forOp('acceptDmRequest').find((p) => p.name === 'text');
+	assert.equal(text.required, true);
+	assert.match(text.description, /10,000/);
+	assert.equal(sendOf('acceptDmRequest', 'text').property, 'text');
+	assert.equal(forOp('declineDmRequest').find((p) => p.name === 'text'), undefined);
+});
+
+test('preSend adds the passcode for the DM request routes', async () => {
+	const creds = { cookie: COOKIE, proxy: PROXY, chatPasscode: '0042' };
+	for (const url of [
+		'/client/dm/requests',
+		'/client/dm/requests/accept',
+		'/client/dm/requests/decline',
+	]) {
+		const { body } = await addXSession.call(ctx(creds), { url, method: 'POST', body: {} });
+		assert.deepEqual(body, { cookie: COOKIE, proxy: PROXY, passcode: '0042' }, url);
+	}
 });
 
 test('article choices match the values the API accepts', () => {

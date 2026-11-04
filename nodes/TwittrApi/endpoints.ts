@@ -226,6 +226,47 @@ const quoteUrl = (apiName: string): EndpointParam => ({
 	description: 'URL of a tweet to quote',
 });
 
+/** conversation_id or user_id of a pending message request, chosen with "Identify Request By". */
+const dmRequestTarget = (): EndpointParam[] => [
+	{
+		displayName: 'Identify Request By',
+		name: 'requestBy',
+		in: 'ui',
+		type: 'options',
+		required: true,
+		default: 'conversation',
+		description: 'Whether to identify the request by conversation ID or by the user who sent it',
+		options: [
+			{ name: 'Conversation', value: 'conversation' },
+			{ name: 'User', value: 'user' },
+		],
+	},
+	{
+		displayName: 'Conversation ID',
+		name: 'conversationId',
+		apiName: 'conversation_id',
+		in: 'body',
+		type: 'string',
+		required: true,
+		default: '',
+		placeholder: '12:44196397',
+		description: 'Conversation ID from Get DM Requests',
+		showWhen: { requestBy: ['conversation'] },
+	},
+	{
+		displayName: 'User ID',
+		name: 'userId',
+		apiName: 'user_id',
+		in: 'body',
+		type: 'string',
+		required: true,
+		default: '',
+		placeholder: '44196397',
+		description: 'Numeric ID of the person who sent the request',
+		showWhen: { requestBy: ['user'] },
+	},
+];
+
 /** user_id or username in the body, chosen with "Identify User By". */
 const bodyUser = (): EndpointParam[] => [
 	{
@@ -522,6 +563,65 @@ const ACCOUNT_ENDPOINTS: Endpoint[] = [
 			},
 			tweetText('Message text, up to 10,000 characters'),
 		],
+		xSession: true,
+	},
+	{
+		resource: 'account',
+		operation: 'getDmRequests',
+		name: 'Get DM Requests',
+		action: 'Get your pending message requests',
+		description:
+			'Your pending message requests with participants and latest messages. Listing does not accept them or mark them as seen. A request that is encrypted needs the X Chat passcode in the credential to be read.',
+		method: 'POST',
+		path: '/client/dm/requests',
+		params: [
+			{
+				displayName: 'Folder',
+				name: 'folder',
+				in: 'body',
+				type: 'options',
+				default: 'you_may_know',
+				description: 'Which requests to list. Leave out for both folders.',
+				options: [
+					{ name: 'Other', value: 'other' },
+					{ name: 'You May Know', value: 'you_may_know' },
+				],
+			},
+			{
+				displayName: 'Count',
+				name: 'count',
+				in: 'body',
+				type: 'number',
+				default: 20,
+				minValue: 1,
+				maxValue: 50,
+				description: 'Requests to return per folder, 1 to 50',
+			},
+		],
+		xSession: true,
+	},
+	{
+		resource: 'account',
+		operation: 'acceptDmRequest',
+		name: 'Accept DM Request',
+		action: 'Accept a message request',
+		description:
+			'Accept one pending one-to-one message request and send the first reply in one call. Needs the X Chat passcode in the credential.',
+		method: 'POST',
+		path: '/client/dm/requests/accept',
+		params: [...dmRequestTarget(), tweetText('Reply text, up to 10,000 characters')],
+		xSession: true,
+	},
+	{
+		resource: 'account',
+		operation: 'declineDmRequest',
+		name: 'Decline DM Request',
+		action: 'Decline a message request',
+		description:
+			'Delete a pending message request from your inbox. The sender is not told. Needs the X Chat passcode in the credential.',
+		method: 'POST',
+		path: '/client/dm/requests/decline',
+		params: dmRequestTarget(),
 		xSession: true,
 	},
 	{

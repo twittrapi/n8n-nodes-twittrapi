@@ -51,7 +51,7 @@ export class TwittrApiXSessionApi implements ICredentialType {
 			typeOptions: { password: true },
 			default: '',
 			description:
-				'Optional. Your X Chat passcode, needed to send direct messages and to read message text in the inbox.',
+				'Optional. Your X Chat passcode, needed to send direct messages, to accept or decline message requests, and to read message text in the inbox.',
 		},
 	];
 }
